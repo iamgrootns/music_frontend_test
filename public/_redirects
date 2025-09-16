@@ -15,6 +15,7 @@
 /api/model-y/status/* /.netlify/functions/model-y-status 200
 /api/model-x/status/* /.netlify/functions/model-x-status 200
 /.netlify/functions/download/* /.netlify/functions/download 200
+/netlify/functions/download/* /.netlify/functions/download 200
 
 # SPA fallback - must be last
 /* /index.html 200
