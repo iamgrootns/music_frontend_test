@@ -51,13 +51,13 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers: {
         'Content-Type': 'audio/wav',
-        'Content-Disposition': `attachment; filename="generated-music-${fileId}.wav"`,
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Expose-Headers': 'Content-Length, Content-Type',
-        'Cache-Control': 'no-cache',
-        'Content-Length': audioBuffer.length.toString()
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Length': audioBuffer.length.toString(),
+        'Accept-Ranges': 'bytes'
       },
       body: audioBuffer.toString('base64'),
       isBase64Encoded: true
