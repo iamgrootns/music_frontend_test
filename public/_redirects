@@ -1,0 +1,20 @@
+# COMMENTED OUT - These direct proxy rules cause 401 errors because they bypass authentication
+# Model Y API proxy 
+# /api/model-y https://api.runpod.ai/v2/6jx8w05r889z4o/run 200 
+# /api/model-y/status/* https://api.runpod.ai/v2/6jx8w05r889z4o/status/:splat 200 
+
+# Model X API proxy   
+# /api/model-x https://api.runpod.ai/v2/z26fexmzkqeb3n/run 200 
+# /api/model-x/status/* https://api.runpod.ai/v2/z26fexmzkqeb3n/status/:splat 200 
+
+# SPA fallback - always serves your landing page 
+
+# Netlify Functions (with authentication)
+/api/model-y /.netlify/functions/model-y 200
+/api/model-x /.netlify/functions/model-x 200
+/api/model-y/status/* /.netlify/functions/model-y-status 200
+/api/model-x/status/* /.netlify/functions/model-x-status 200
+/.netlify/functions/download/* /.netlify/functions/download 200
+
+# SPA fallback - must be last
+/* /index.html 200
