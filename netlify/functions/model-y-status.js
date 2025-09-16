@@ -52,27 +52,45 @@ exports.handler = async (event, context) => {
     if (result.status === 'COMPLETED' && result.output?.audio_base64) {
       console.log('Processing completed audio, size:', result.output.audio_base64.length);
       
-      // Use the RunPod job ID as the fileId for download
-      const jobId = event.path.split('/').pop();
-      const audioBuffer = Buffer.from(result.output.audio_base64, 'base64');
+      // Generate unique filename
+      const fileId = crypto.randomUUID();
+      const fileName = `${fileId}.wav`;
       
-      console.log('Using RunPod job ID for download:', jobId);
+      // Use the correct temporary directory
+      const tempDir = os.tmpdir();
+      const filePath = path.join(tempDir, fileName);
       
-      // Return download URL using the RunPod job ID
-       return {
-         statusCode: 200,
-         headers: { 'Access-Control-Allow-Origin': '*' },
-         body: JSON.stringify({
-           status: 'COMPLETED',
-           output: {
-             download_url: `/.netlify/functions/download/${jobId}`,
-             sample_rate: result.output.sample_rate,
-             format: result.output.format,
-             file_size: audioBuffer.length
-           }
-         })
-       };
-     }
+      console.log('Saving audio to:', filePath);
+      
+      try {
+        // Save audio to temporary file
+        const audioBuffer = Buffer.from(result.output.audio_base64, 'base64');
+        fs.writeFileSync(filePath, audioBuffer);
+        console.log('Audio file saved:', filePath, 'Size:', audioBuffer.length);
+        
+        // Return download URL instead of large data
+        return {
+          statusCode: 200,
+          headers: { 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({
+            status: 'COMPLETED',
+            output: {
+              download_url: `/.netlify/functions/download/${fileId}`,
+              sample_rate: result.output.sample_rate,
+              format: result.output.format,
+              file_size: audioBuffer.length
+            }
+          })
+        };
+      } catch (fileError) {
+        console.error('File processing error:', fileError);
+        return {
+          statusCode: 500,
+          headers: { 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({ error: `File processing error: ${fileError.message}` })
+        };
+      }
+    }
     
     // For other statuses, return as-is
     console.log('Returning status as-is:', result.status);

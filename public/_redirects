@@ -9,15 +9,11 @@
 
 # SPA fallback - always serves your landing page 
 
-# Netlify Functions (with authentication) - MUST be before SPA fallback
+# Netlify Functions (with authentication)
 /api/model-y /.netlify/functions/model-y 200
 /api/model-x /.netlify/functions/model-x 200
 /api/model-y/status/* /.netlify/functions/model-y-status 200
 /api/model-x/status/* /.netlify/functions/model-x-status 200
-/.netlify/functions/download/:fileId /.netlify/functions/download/:fileId 200
-/netlify/functions/download/:fileId /.netlify/functions/download/:fileId 200
-/.netlify/functions/download/* /.netlify/functions/download 200
-/netlify/functions/download/* /.netlify/functions/download 200
 
 # SPA fallback - must be last
 /* /index.html 200
