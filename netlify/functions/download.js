@@ -27,25 +27,44 @@ exports.handler = async (event, context) => {
 
   try {
     const fileId = event.path.split('/').pop();
-    // Use os.tmpdir() to match the path used in model-y-status.js
-    const filePath = path.join(os.tmpdir(), `${fileId}.wav`);
+    console.log('Download request for fileId:', fileId);
     
-    console.log('Looking for file at:', filePath);
+    // Since Netlify Functions are stateless, we need to fetch the audio from RunPod again
+    // The fileId should be the RunPod job ID
+    const runpodUrl = `https://api.runpod.ai/v2/${process.env.RUNPOD_ENDPOINT_ID}/status/${fileId}`;
     
-    if (!fs.existsSync(filePath)) {
-      console.log('File not found at:', filePath);
+    console.log('Fetching from RunPod:', runpodUrl);
+    
+    const response = await fetch(runpodUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${process.env.RUNPOD_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('RunPod API error:', response.status);
       return {
         statusCode: 404,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'File not found or expired' })
+        body: JSON.stringify({ error: 'Audio file not found or expired' })
+      };
+    }
+
+    const result = await response.json();
+    console.log('RunPod result status:', result.status);
+    
+    if (result.status !== 'COMPLETED' || !result.output?.audio_base64) {
+      return {
+        statusCode: 404,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Audio file not ready or not found' })
       };
     }
     
-    const audioBuffer = fs.readFileSync(filePath);
-    console.log('File found and read, size:', audioBuffer.length);
-    
-    // Don't delete immediately - allow multiple downloads
-    // File will be cleaned up by OS temp directory cleanup
+    const audioBuffer = Buffer.from(result.output.audio_base64, 'base64');
+    console.log('Audio buffer size:', audioBuffer.length);
     
     return {
       statusCode: 200,

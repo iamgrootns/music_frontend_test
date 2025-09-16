@@ -49,53 +49,29 @@ exports.handler = async (event, context) => {
     
     // If completed and has large audio data
     if (result.status === 'COMPLETED' && result.output?.audio_base64) {
-      try {
-        console.log('Model X - Processing completed audio, size:', result.output.audio_base64.length);
-        
-        // Generate unique filename
-        const fileId = crypto.randomUUID();
-        const fileName = `${fileId}.wav`;
-        
-        // Use os.tmpdir() for cross-platform compatibility
-        const tempDir = os.tmpdir();
-        const filePath = path.join(tempDir, fileName);
-        
-        console.log('Model X - Saving audio to:', filePath);
-        
-        // Ensure temp directory exists
-        if (!fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
-        }
-        
-        // Save audio to temporary file
-        const audioBuffer = Buffer.from(result.output.audio_base64, 'base64');
-        fs.writeFileSync(filePath, audioBuffer);
-        
-        console.log('Model X - Audio file saved:', filePath, 'Size:', audioBuffer.length);
-        
-        // Return download URL instead of large data
-        return {
-          statusCode: 200,
-          headers: { 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({
-            status: 'COMPLETED',
-            output: {
-              download_url: `/.netlify/functions/download/${fileId}`,
-              sample_rate: result.output.sample_rate,
-              format: result.output.format,
-              file_size: audioBuffer.length
-            }
-          })
-        };
-      } catch (fileError) {
-        console.error('Model X - File processing error:', fileError);
-        return {
-          statusCode: 500,
-          headers: { 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({ error: `File processing error: ${fileError.message}` })
-        };
-      }
-    }
+      console.log('Model X - Processing completed audio, size:', result.output.audio_base64.length);
+      
+      // Use the RunPod job ID as the fileId for download
+      const jobId = event.path.split('/').pop();
+      const audioBuffer = Buffer.from(result.output.audio_base64, 'base64');
+      
+      console.log('Model X - Using RunPod job ID for download:', jobId);
+      
+      // Return download URL using the RunPod job ID
+      return {
+        statusCode: 200,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({
+          status: 'COMPLETED',
+          output: {
+            download_url: `/.netlify/functions/download/${jobId}`,
+            sample_rate: result.output.sample_rate,
+            format: result.output.format,
+            file_size: audioBuffer.length
+          }
+        })
+       };
+     }
     
     // For other statuses, return as-is
     console.log('Model X - Returning status as-is:', result.status);
