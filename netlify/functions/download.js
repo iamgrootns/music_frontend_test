@@ -3,8 +3,26 @@ const path = require('path');
 const os = require('os');
 
 exports.handler = async (event, context) => {
+  // Handle CORS preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400'
+      },
+      body: ''
+    };
+  }
+
   if (event.httpMethod !== 'GET') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { 
+      statusCode: 405, 
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: 'Method Not Allowed' 
+    };
   }
 
   try {
@@ -26,8 +44,8 @@ exports.handler = async (event, context) => {
     const audioBuffer = fs.readFileSync(filePath);
     console.log('File found and read, size:', audioBuffer.length);
     
-    // Clean up file after reading
-    fs.unlinkSync(filePath);
+    // Don't delete immediately - allow multiple downloads
+    // File will be cleaned up by OS temp directory cleanup
     
     return {
       statusCode: 200,
@@ -35,6 +53,10 @@ exports.handler = async (event, context) => {
         'Content-Type': 'audio/wav',
         'Content-Disposition': `attachment; filename="generated-music-${fileId}.wav"`,
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Expose-Headers': 'Content-Length, Content-Type',
+        'Cache-Control': 'no-cache',
         'Content-Length': audioBuffer.length.toString()
       },
       body: audioBuffer.toString('base64'),

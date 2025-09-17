@@ -135,10 +135,17 @@ export const ModelComparison = () => {
       }
 
       // Download the audio and create a blob URL for local playback
+      console.log(`${model} - Original audio URL:`, result.audioUrl);
+      
       const audioBlob = model === 'modely'
         ? await new ModelYService().downloadAudio(result.audioUrl)
         : await new MusicGenerationService('').downloadAudio(result.audioUrl);
+      
+      console.log(`${model} - Downloaded audio blob:`, audioBlob.size, 'bytes, type:', audioBlob.type);
+      
       const localUrl = URL.createObjectURL(audioBlob);
+      console.log(`${model} - Created blob URL:`, localUrl);
+      
       setAudioUrl(localUrl);
       
       toast({
