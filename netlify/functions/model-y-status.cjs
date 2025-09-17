@@ -1,3 +1,8 @@
+import fs from "fs";
+import path from "path";
+import os from "os";
+import crypto from "crypto";
+
 export async function handler(event, context) {
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: "Method Not Allowed" };
@@ -5,7 +10,7 @@ export async function handler(event, context) {
 
   try {
     const taskId = event.path.split("/").pop();
-    const statusUrl = `${process.env.RUNPOD_ENDPOINT_X}/status/${taskId}`;
+    const statusUrl = `${process.env.RUNPOD_ENDPOINT_Y}/status/${taskId}`;
 
     const response = await fetch(statusUrl, {
       headers: { Authorization: `Bearer ${process.env.RUNPOD_API_KEY}` },
@@ -21,15 +26,21 @@ export async function handler(event, context) {
 
     const result = await response.json();
 
-    // ✅ Return audio inline instead of writing temp files
+    // ✅ Only return immediately (never block >1s)
     if (result.status === "COMPLETED" && result.output?.audio_base64) {
+      // Save audio to tmp file
+      const fileId = crypto.randomUUID();
+      const filePath = path.join(os.tmpdir(), `${fileId}.wav`);
+      const audioBuffer = Buffer.from(result.output.audio_base64, "base64");
+      fs.writeFileSync(filePath, audioBuffer);
+
       return {
         statusCode: 200,
         headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({
           status: "COMPLETED",
           output: {
-            audio_base64: result.output.audio_base64,
+            download_url: `/api/download/${fileId}`,
             sample_rate: result.output.sample_rate,
             format: result.output.format,
           },
@@ -37,6 +48,7 @@ export async function handler(event, context) {
       };
     }
 
+    // Otherwise return the raw RunPod status
     return {
       statusCode: 200,
       headers: { "Access-Control-Allow-Origin": "*" },
