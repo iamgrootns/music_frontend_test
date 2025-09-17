@@ -21,12 +21,27 @@ export const AudioPlayer = ({ audioUrl, onClose }: AudioPlayerProps) => {
     }
   }, [audioUrl]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        try {
+          await audioRef.current.play();
+          setIsPlaying(true);
+        } catch (error) {
+          console.error('Audio playback failed:', error);
+          // Handle autoplay restrictions
+          if (error.name === 'NotAllowedError') {
+            alert('Audio playback requires user interaction. Please click play again.');
+          } else if (error.name === 'NotSupportedError') {
+            alert('Audio format not supported by your browser.');
+          } else {
+            alert('Audio playback failed. Please try downloading the file instead.');
+          }
+          setIsPlaying(false);
+          return;
+        }
       }
       setIsPlaying(!isPlaying);
     }
@@ -86,6 +101,12 @@ export const AudioPlayer = ({ audioUrl, onClose }: AudioPlayerProps) => {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
+        onError={(e) => {
+          console.error('Audio loading error:', e);
+          console.error('Audio error details:', audioRef.current?.error);
+        }}
+        crossOrigin="anonymous"
+        preload="metadata"
       />
       
       <div className="text-center mb-6">

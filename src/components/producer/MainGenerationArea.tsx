@@ -137,12 +137,19 @@ export const MainGenerationArea = () => {
       }
 
       // Download the audio and create a blob URL for local playback
+      console.log('Original audio URL:', result.audioUrl);
+      
       const audioBlob = selectedModel === 'modely' 
         ? await new ModelYService().downloadAudio(result.audioUrl)
         : selectedModel === 'modelxlarge'
         ? await new ModelXService().downloadAudio(result.audioUrl)
         : await new MusicGenerationService('').downloadAudio(result.audioUrl);
+      
+      console.log('Downloaded audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
+      
       const localUrl = URL.createObjectURL(audioBlob);
+      console.log('Created blob URL:', localUrl);
+      
       setAudioUrl(localUrl);
 
       // Add to sidebar library with taskId for persistence
@@ -180,15 +187,41 @@ export const MainGenerationArea = () => {
     generateMusic();
   };
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     if (!audioRef.current) return;
     
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (error) {
+        console.error('Audio playback failed:', error);
+        // Handle autoplay restrictions and other errors
+        if (error.name === 'NotAllowedError') {
+          toast({
+            title: "Playback Blocked",
+            description: "Audio playback requires user interaction. Please click play again.",
+            variant: "destructive"
+          });
+        } else if (error.name === 'NotSupportedError') {
+          toast({
+            title: "Format Not Supported",
+            description: "Audio format not supported by your browser. Try downloading instead.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Playback Failed",
+            description: "Audio playback failed. Please try downloading the file instead.",
+            variant: "destructive"
+          });
+        }
+        setIsPlaying(false);
+      }
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleTimeUpdate = () => {
@@ -477,6 +510,17 @@ export const MainGenerationArea = () => {
                   onTimeUpdate={handleTimeUpdate}
                   onLoadedMetadata={handleLoadedMetadata}
                   onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    console.error('Audio loading error:', e);
+                    console.error('Audio error details:', audioRef.current?.error);
+                    toast({
+                      title: "Audio Loading Failed",
+                      description: "Failed to load audio file. Please try regenerating or downloading.",
+                      variant: "destructive"
+                    });
+                  }}
+                  crossOrigin="anonymous"
+                  preload="metadata"
                 />
                 
                 {/* Progress Bar */}
